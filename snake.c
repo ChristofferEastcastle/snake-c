@@ -1,17 +1,17 @@
-#include <stdio.h>
 #include <stdlib.h>
-
 #include "raylib.h"
 
 #define SCREEN_WIDTH 1600
 #define SCREEN_HEIGHT 900
-
 #define LEN 100
+#define MAX_TAIL 100
 
 static bool playing = true;
 
 typedef struct {
     Vector2 snake;
+    Vector2 tail[MAX_TAIL];
+    int tail_length;
     Vector2 food;
     bool is_food_available;
 } Game;
@@ -83,6 +83,7 @@ void render_snake(Game* game) {
 
     if (game->snake.x == game->food.x && game->snake.y == game->food.y) {
         game->is_food_available = false;
+        game->tail_length++;
     }
 
     update_dir(&dir, &next_dir);
@@ -91,6 +92,11 @@ void render_snake(Game* game) {
     if (playing) {
         const bool in_square = (int)game->snake.x % LEN == 0 && (int) game->snake.y % LEN == 0;
         if (in_square) dir = next_dir;
+        for (int i = game->tail_length - 1; i > 0; i--) {
+            game->tail[i] = game->tail[i - 1];
+        }
+        game->tail[0] = game->snake;
+
         if (dir == LEFT) game->snake.x -= VELOCITY;
         if (dir == RIGHT) game->snake.x += VELOCITY;
         if (dir == UP) game->snake.y -= VELOCITY;
@@ -98,6 +104,12 @@ void render_snake(Game* game) {
     }
 
     DrawRectangle(game->snake.x, game->snake.y, LEN, LEN, SNAKE_COLOR);
+    for (int i = 0; i < game->tail_length; i++) {
+        if (dir == LEFT) DrawRectangle(game->tail[i].x + LEN, game->tail[i].y, LEN, LEN, SNAKE_COLOR);
+        if (dir == RIGHT) DrawRectangle(game->tail[i].x - LEN, game->tail[i].y, LEN, LEN, SNAKE_COLOR);
+        if (dir == UP) DrawRectangle(game->tail[i].x, game->tail[i].y + LEN, LEN, LEN, SNAKE_COLOR);
+        if (dir == DOWN) DrawRectangle(game->tail[i].x, game->tail[i].y - LEN, LEN, LEN, SNAKE_COLOR);
+    }
 }
 
 
@@ -107,6 +119,7 @@ int main(void) {
 
     Game game = {
         .snake = {0, 0},
+        .tail = {-1},
         .food = get_rand_x(), get_rand_y(),
         .is_food_available = false,
     };
