@@ -3,10 +3,12 @@
 
 #include "raylib.h"
 
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
+#define SCREEN_WIDTH 1600
+#define SCREEN_HEIGHT 900
 
-#define LEN 120
+#define LEN 100
+
+static bool playing = true;
 
 void render_background(void)
 {
@@ -48,57 +50,56 @@ void render_food(void)
     DrawRectangle(rand_x, rand_y, LEN, LEN, FOOD_COLOR);
 }
 
+void render_snake() {
+    static Vector2 snake = { 0, 0 };
+    static enum Dir dir = RIGHT;
+    static enum Dir next_dir = RIGHT;
+
+    if (snake.x >= SCREEN_WIDTH) snake.x -= SCREEN_WIDTH;
+    if (snake.x < 0) snake.x += SCREEN_WIDTH;
+    if (snake.y >= SCREEN_HEIGHT) snake.y -= SCREEN_HEIGHT;
+    if (snake.y < 0) snake.y += SCREEN_HEIGHT;
+
+
+    const bool left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
+    const bool right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
+    const bool up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
+    const bool down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
+
+    if (left) next_dir = LEFT;
+    if (right) next_dir = RIGHT;
+    if (up) next_dir = UP;
+    if (down) next_dir = DOWN;
+
+    if (playing) {
+        const bool in_square = (int)snake.x % LEN == 0 && (int) snake.y % LEN == 0;
+        if (in_square) dir = next_dir;
+        if (dir == LEFT) snake.x -= VELOCITY;
+        if (dir == RIGHT) snake.x += VELOCITY;
+        if (dir == UP) snake.y -= VELOCITY;
+        if (dir == DOWN) snake.y += VELOCITY;
+    }
+
+    DrawRectangle(snake.x, snake.y, LEN, LEN, SNAKE_COLOR);
+}
+
+
 int main(void) {
     SetTargetFPS(60);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
 
-
-    Vector2 snake = { 0, 0 };
-    enum Dir dir = RIGHT;
-    enum Dir next_dir = RIGHT;
-    bool playing = true;
-
     while (!WindowShouldClose())
     {
         BeginDrawing();
+        if (IsKeyPressed(KEY_SPACE)) playing = !playing;
 
         ClearBackground(BLACK);
         render_background();
         render_food();
+        render_snake();
 
-        if (IsKeyPressed(KEY_SPACE)) playing = !playing;
-
-
-        if (snake.x > SCREEN_WIDTH) snake.x = 0;
-        if (snake.x + LEN < 0) snake.x = SCREEN_WIDTH;
-        if (snake.y > SCREEN_HEIGHT) snake.y = 0;
-        if (snake.y + LEN < 0) snake.y = SCREEN_HEIGHT;
-
-
-        const bool left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
-        const bool right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
-        const bool up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
-        const bool down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
-
-        if (left) next_dir = LEFT;
-        if (right) next_dir = RIGHT;
-        if (up) next_dir = UP;
-        if (down) next_dir = DOWN;
-
-
-        const bool in_square = (int)snake.x % LEN == 0 && (int) snake.y % LEN == 0;
-        if (in_square) dir = next_dir;
-
-
-        if (playing)
-        {
-            if (dir == LEFT) snake.x -= VELOCITY;
-            if (dir == RIGHT) snake.x += VELOCITY;
-            if (dir == UP) snake.y -= VELOCITY;
-            if (dir == DOWN) snake.y += VELOCITY;
-        }
-        else DrawText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 - 125, 20, WHITE);
-        DrawRectangle(snake.x, snake.y, LEN, LEN, SNAKE_COLOR);
+        if(!playing)
+            DrawText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 - 125, 20, WHITE);
 
 
         EndDrawing();
