@@ -10,6 +10,24 @@
 
 static bool playing = true;
 
+typedef struct {
+    Vector2 snake;
+    Vector2 food;
+    bool is_food_available;
+} Game;
+
+#define SNAKE_COLOR GetColor(0x3a9124FF)
+#define FOOD_COLOR GetColor(0xde6f14FF)
+
+
+enum Dir {
+    LEFT = 0,
+    RIGHT,
+    UP,
+    DOWN,
+};
+#define VELOCITY 10
+
 void render_background(void)
 {
     // Iterate over the screen width and height using the exact pixel dimensions
@@ -24,41 +42,32 @@ void render_background(void)
     }
 }
 
-#define SNAKE_COLOR GetColor(0x3a9124FF)
-#define FOOD_COLOR GetColor(0xde6f14FF)
-
-
-enum Dir {
-    LEFT = 0,
-    RIGHT,
-    UP,
-    DOWN,
-};
-#define VELOCITY 10
-
-void render_food(void)
-{
-    static bool is_food_available = false;
-    static int rand_x;
-    static int rand_y;
-
-    if (!is_food_available) {
-        is_food_available = true;
-        rand_x = (rand() % 16) * LEN;
-        rand_y = (rand()%9) * LEN;
-    }
-    DrawRectangle(rand_x, rand_y, LEN, LEN, FOOD_COLOR);
+int get_rand_x(void) {
+    return (rand() % 16) * LEN;
 }
 
-void render_snake() {
-    static Vector2 snake = { 0, 0 };
+int get_rand_y(void) {
+    return (rand() % 9) * LEN;
+}
+
+void render_food(Game* game)
+{
+    if (!game->is_food_available) {
+        game->is_food_available = true;
+        game->food.x = get_rand_x();
+        game->food.y = get_rand_y();
+    }
+    DrawRectangle(game->food.x, game->food.y, LEN, LEN, FOOD_COLOR);
+}
+
+void render_snake(Game* game) {
     static enum Dir dir = RIGHT;
     static enum Dir next_dir = RIGHT;
 
-    if (snake.x >= SCREEN_WIDTH) snake.x -= SCREEN_WIDTH;
-    if (snake.x < 0) snake.x += SCREEN_WIDTH;
-    if (snake.y >= SCREEN_HEIGHT) snake.y -= SCREEN_HEIGHT;
-    if (snake.y < 0) snake.y += SCREEN_HEIGHT;
+    if (game->snake.x >= SCREEN_WIDTH) game->snake.x -= SCREEN_WIDTH;
+    if (game->snake.x < 0) game->snake.x += SCREEN_WIDTH;
+    if (game->snake.y >= SCREEN_HEIGHT) game->snake.y -= SCREEN_HEIGHT;
+    if (game->snake.y < 0) game->snake.y += SCREEN_HEIGHT;
 
 
     const bool left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
@@ -71,22 +80,34 @@ void render_snake() {
     if (up && dir != DOWN) next_dir = UP;
     if (down && dir != UP) next_dir = DOWN;
 
+    // We only want to update the direction if the snake is in a square and we are in playing state
     if (playing) {
-        const bool in_square = (int)snake.x % LEN == 0 && (int) snake.y % LEN == 0;
+        const bool in_square = (int)game->snake.x % LEN == 0 && (int) game->snake.y % LEN == 0;
         if (in_square) dir = next_dir;
-        if (dir == LEFT) snake.x -= VELOCITY;
-        if (dir == RIGHT) snake.x += VELOCITY;
-        if (dir == UP) snake.y -= VELOCITY;
-        if (dir == DOWN) snake.y += VELOCITY;
+        if (dir == LEFT) game->snake.x -= VELOCITY;
+        if (dir == RIGHT) game->snake.x += VELOCITY;
+        if (dir == UP) game->snake.y -= VELOCITY;
+        if (dir == DOWN) game->snake.y += VELOCITY;
     }
 
-    DrawRectangle(snake.x, snake.y, LEN, LEN, SNAKE_COLOR);
+    if (game->snake.x == game->food.x && game->snake.y == game->food.y) {
+        game->is_food_available = false;
+
+    }
+
+    DrawRectangle(game->snake.x, game->snake.y, LEN, LEN, SNAKE_COLOR);
 }
 
 
 int main(void) {
     SetTargetFPS(60);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
+
+    Game game = {
+        .snake = {0, 0},
+        .food = get_rand_x(), get_rand_y(),
+        .is_food_available = false,
+    };
 
     while (!WindowShouldClose())
     {
@@ -95,14 +116,14 @@ int main(void) {
 
         ClearBackground(BLACK);
         render_background();
-        render_food();
-        render_snake();
+        render_food(&game);
+        render_snake(&game);
 
         if(!playing)
             DrawText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 - 125, 20, WHITE);
 
-
         EndDrawing();
     }
+    CloseWindow();
     return 0;
 }
