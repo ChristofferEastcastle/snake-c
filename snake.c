@@ -66,10 +66,10 @@ void render_snake() {
     const bool up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
     const bool down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
 
-    if (left) next_dir = LEFT;
-    if (right) next_dir = RIGHT;
-    if (up) next_dir = UP;
-    if (down) next_dir = DOWN;
+    if (left && dir != RIGHT) next_dir = LEFT;
+    if (right && dir != LEFT) next_dir = RIGHT;
+    if (up && dir != DOWN) next_dir = UP;
+    if (down && dir != UP) next_dir = DOWN;
 
     if (playing) {
         const bool in_square = (int)snake.x % LEN == 0 && (int) snake.y % LEN == 0;
