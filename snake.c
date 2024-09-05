@@ -60,6 +60,18 @@ void render_food(Game* game)
     DrawRectangle(game->food.x, game->food.y, LEN, LEN, FOOD_COLOR);
 }
 
+void update_dir(const enum Dir *dir, enum Dir *next_dir) {
+    const bool left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
+    const bool right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
+    const bool up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
+    const bool down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
+
+    if (left && *dir != RIGHT) *next_dir = LEFT;
+    if (right && *dir != LEFT) *next_dir = RIGHT;
+    if (up && *dir != DOWN) *next_dir = UP;
+    if (down && *dir != UP) *next_dir = DOWN;
+}
+
 void render_snake(Game* game) {
     static enum Dir dir = RIGHT;
     static enum Dir next_dir = RIGHT;
@@ -69,18 +81,13 @@ void render_snake(Game* game) {
     if (game->snake.y >= SCREEN_HEIGHT) game->snake.y -= SCREEN_HEIGHT;
     if (game->snake.y < 0) game->snake.y += SCREEN_HEIGHT;
 
+    if (game->snake.x == game->food.x && game->snake.y == game->food.y) {
+        game->is_food_available = false;
+    }
 
-    const bool left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
-    const bool right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
-    const bool up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
-    const bool down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
+    update_dir(&dir, &next_dir);
 
-    if (left && dir != RIGHT) next_dir = LEFT;
-    if (right && dir != LEFT) next_dir = RIGHT;
-    if (up && dir != DOWN) next_dir = UP;
-    if (down && dir != UP) next_dir = DOWN;
-
-    // We only want to update the direction if the snake is in a square and we are in playing state
+    // We only want to update the direction if the snake is in a square, and we are in playing state
     if (playing) {
         const bool in_square = (int)game->snake.x % LEN == 0 && (int) game->snake.y % LEN == 0;
         if (in_square) dir = next_dir;
@@ -88,11 +95,6 @@ void render_snake(Game* game) {
         if (dir == RIGHT) game->snake.x += VELOCITY;
         if (dir == UP) game->snake.y -= VELOCITY;
         if (dir == DOWN) game->snake.y += VELOCITY;
-    }
-
-    if (game->snake.x == game->food.x && game->snake.y == game->food.y) {
-        game->is_food_available = false;
-
     }
 
     DrawRectangle(game->snake.x, game->snake.y, LEN, LEN, SNAKE_COLOR);
@@ -109,8 +111,7 @@ int main(void) {
         .is_food_available = false,
     };
 
-    while (!WindowShouldClose())
-    {
+    while (!WindowShouldClose()) {
         BeginDrawing();
         if (IsKeyPressed(KEY_SPACE)) playing = !playing;
 
@@ -119,8 +120,9 @@ int main(void) {
         render_food(&game);
         render_snake(&game);
 
-        if(!playing)
+        if (!playing) {
             DrawText("PAUSED", SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 - 125, 20, WHITE);
+        }
 
         EndDrawing();
     }
