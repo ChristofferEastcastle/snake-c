@@ -14,6 +14,10 @@
 
 static bool playing = true;
 
+typedef struct {
+    int32_t x;
+    int32_t y;
+} IntVector2;
 
 enum Dir {
     LEFT = 0,
@@ -22,20 +26,17 @@ enum Dir {
     DOWN,
 };
 
-
 typedef struct {
     int x;
     int y;
     enum Dir dir;
     bool moving;
-} Tail;
-
+} Snake;
 
 typedef struct {
-    Vector2 snake;
-    Tail tail[MAX_TAIL];
-    int tail_length;
-    Vector2 food;
+    Snake snake[MAX_TAIL];
+    int32_t len;
+    IntVector2 food;
     bool is_food_available;
 } Game;
 
@@ -85,8 +86,8 @@ void update_dir(const enum Dir *dir, enum Dir *next_dir) {
 }
 
 
-Vector2 get_next_pos(Vector2 pos, enum Dir dir) {
-    Vector2 next_pos = pos;
+IntVector2 get_next_pos(const IntVector2 pos, const enum Dir dir) {
+    IntVector2 next_pos = pos;
     printf("x: %d y: %d\n", pos.x, pos.y);
     if (dir == LEFT) next_pos.x -= LEN;
     if (dir == RIGHT) next_pos.x += LEN;
@@ -98,28 +99,27 @@ Vector2 get_next_pos(Vector2 pos, enum Dir dir) {
 void render_snake(Game* game) {
     static enum Dir dir = RIGHT;
     static enum Dir next_dir = RIGHT;
-    static enum Dir last_dir = RIGHT; 
-    static Vector2 last_dir_pos = {0, 0};
+    static enum Dir last_dir = RIGHT;
+    static IntVector2 last_dir_pos = {0, 0};
 
-    if (game->snake.x >= SCREEN_WIDTH) game->snake.x -= SCREEN_WIDTH;
-    if (game->snake.x < 0) game->snake.x += SCREEN_WIDTH;
-    if (game->snake.y >= SCREEN_HEIGHT) game->snake.y -= SCREEN_HEIGHT;
-    if (game->snake.y < 0) game->snake.y += SCREEN_HEIGHT;
+    for (int i = 0; i < game->len; ++i) {
+        if (game->snake[i].x >= SCREEN_WIDTH) game->snake[i].x -= SCREEN_WIDTH;
+        if (game->snake[i].x < 0) game->snake[i].x += SCREEN_WIDTH;
+        if (game->snake[i].y >= SCREEN_HEIGHT) game->snake[i].y -= SCREEN_HEIGHT;
+        if (game->snake[i].y < 0) game->snake[i].y += SCREEN_HEIGHT;
+        const bool in_square = game->snake[i].x % LEN == 0 && (int) game->snake[i].y % LEN == 0;
 
+        if (in_square) {
+            last_dir = dir; // Save current direction as last direction
+            dir = next_dir; // Set new direction
+        }
 
-    const bool in_square = (int)game->snake.x % LEN == 0 && (int) game->snake.y % LEN == 0;
-    if (in_square) {
-        last_dir = dir; // Save current direction as last direction
-        dir = next_dir; // Set new direction
-        Vector2 next_pos = get_next_pos(game->snake, next_dir); // Save current position as last position 
-        // create a function that calculates the next position of snake. 
-
-
-        for (int i = 0; i < game->tail_length; i++) {
+        /*
+        for (int i = 0; i < game->len; i++) {
            // printf("x: %d y: %d\n", next_pos.x / SCREEN_WIDTH, next_pos.y / SCREEN_HEIGHT);
            game->tail[i].moving = true;
-           const bool in_square = (int)game->tail[i].x % LEN == 0 && (int) game->tail[i].y % LEN == 0;
-            if (in_square && game->tail[i].x == next_pos.x && game->tail[i].y == next_pos.y) {
+           const bool tail_in_square = game->tail[i].x % LEN == 0 && game->tail[i].y % LEN == 0;
+            if (tail_in_square && game->tail[i].x == next_pos.x && game->tail[i].y == next_pos.y) {
                 if (i == 0) {
                     game->tail[i].dir = last_dir;
                 }
@@ -128,44 +128,30 @@ void render_snake(Game* game) {
                 }
             }
        }
+       */
     }  
     // When in square, render the tail 
 
     
     // Eating food
-    if (game->snake.x == game->food.x && game->snake.y == game->food.y) {
+    if (game->snake[0].x == game->food.x && game->snake[0].y == game->food.y) {
         game->is_food_available = false;
-        Tail tail = {.x = game->snake.x, .y = game->snake.y, dir, .moving = false};
-        game->tail[game->tail_length++] = tail;
     }
 
     update_dir(&dir, &next_dir);
 
     // We only want to update the direction if the snake is in a square, and we are in playing state
     if (playing) {
+        if (dir == LEFT) game->snake[0].x -= VELOCITY;
+        if (dir == RIGHT) game->snake[0].x += VELOCITY;
+        if (dir == UP) game->snake[0].y -= VELOCITY;
+        if (dir == DOWN) game->snake[0].y += VELOCITY;
 
-        if (dir == LEFT) game->snake.x -= VELOCITY;
-        if (dir == RIGHT) game->snake.x += VELOCITY;
-        if (dir == UP) game->snake.y -= VELOCITY;
-        if (dir == DOWN) game->snake.y += VELOCITY;
-
-        for (int i = 0; i < game->tail_length; i++) {
-            if (!game->tail[i].moving) continue;
-
-            
-            if (dir == LEFT) game->tail[i].x -= VELOCITY;
-            if (dir == RIGHT) game->tail[i].x += VELOCITY;
-            if (dir == UP) game->tail[i].y -= VELOCITY;
-            if (dir == DOWN) game->tail[i].y += VELOCITY;
-        }
     }
 
-    DrawRectangle(game->snake.x, game->snake.y, LEN, LEN, SNAKE_COLOR);
-
-    for (int i = 0; i < game->tail_length; i++) {
-        DrawRectangle(game->tail[i].x, game->tail[i].y, LEN, LEN, SNAKE_COLOR);
+    for (int i = 0; i < game->len; i++) {
+        DrawRectangle(game->snake[i].x, game->snake[i].y, LEN, LEN, SNAKE_COLOR);
     }
-    
 }
 
 
@@ -175,8 +161,7 @@ int main(void) {
 
     Game game = {
         .snake = {0, 0},
-        .tail = {0},
-        .tail_length = 0,
+        .len = 1,
         .food = get_rand_x(), get_rand_y(),
         .is_food_available = false,
     };
