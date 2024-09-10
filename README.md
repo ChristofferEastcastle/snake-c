@@ -6,4 +6,4 @@
 $ make && ./snake
 ```
 
-![img.png](img.png)!
+![img.png](img.png)
