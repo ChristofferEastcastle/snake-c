@@ -30,7 +30,6 @@ typedef struct {
     int x;
     int y;
     enum Dir dir;
-    enum Dir next_dir;
     bool moving;
 } Snake;
 
@@ -71,7 +70,7 @@ void render_food(Game* game)
         game->food.x = get_rand_x();
         game->food.y = get_rand_y();
     }
-    DrawRectangle(game->food.x, game->food.y, LEN, LEN, FOOD_COLOR);
+    DrawCircle(game->food.x + LEN/2, game->food.y + LEN/2, LEN/2, FOOD_COLOR);
 }
 
 void update_dir(const enum Dir *dir, enum Dir *next_dir) {
@@ -99,8 +98,11 @@ IntVector2 get_next_pos(const IntVector2 pos, const enum Dir dir) {
 
 void render_snake(Game* game) {
     Snake *snake = game->snake;
-
     static enum Dir next_dir = RIGHT;
+    float amplitude;
+    if (IsKeyDown(KEY_LEFT_SHIFT)) amplitude = 0.4;
+    else amplitude = 1.0;
+
 
     for (int i = 0; i < game->len; ++i) {
         if (snake[i].x >= SCREEN_WIDTH) snake[i].x -= SCREEN_WIDTH;
@@ -134,32 +136,30 @@ void render_snake(Game* game) {
     }
 
     update_dir(&snake[0].dir, &next_dir);
+
     for (int i = 0; i < game->len; ++i) {
         if (playing && game->snake[i].moving) {
-            if (snake[i].dir == LEFT) game->snake[i].x -= VELOCITY;
-            if (snake[i].dir == RIGHT) game->snake[i].x += VELOCITY;
-            if (snake[i].dir == UP) game->snake[i].y -= VELOCITY;
-            if (snake[i].dir == DOWN) game->snake[i].y += VELOCITY;
+            if (snake[i].dir == LEFT) game->snake[i].x -= VELOCITY * amplitude;
+            if (snake[i].dir == RIGHT) game->snake[i].x += VELOCITY * amplitude;
+            if (snake[i].dir == UP) game->snake[i].y -= VELOCITY * amplitude;
+            if (snake[i].dir == DOWN) game->snake[i].y += VELOCITY * amplitude;
         }
     }
 
     for (int i = 0; i < game->len; i++) {
-        DrawRectangle(snake[i].x, snake[i].y, LEN, LEN, SNAKE_COLOR);
+        //DrawRectangle(snake[i].x, snake[i].y, LEN, LEN, SNAKE_COLOR);
+        DrawCircle(snake[i].x+LEN/2, snake[i].y+LEN/2, LEN/2, SNAKE_COLOR);
     }
 }
 
 
-int main(void) {
-    SetTargetFPS(60);
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
-
-    Game game = {
+Game setup_game(void) {
+    const Game game = {
         .snake = {
             {
                 .x = 0,
                 .y = 0,
                 .dir = RIGHT,
-                RIGHT,
                 .moving = true,
             },
         },
@@ -167,6 +167,14 @@ int main(void) {
         .food = get_rand_x(), get_rand_y(),
         .is_food_available = false,
     };
+    return game;
+}
+
+int main(void) {
+    SetTargetFPS(60);
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
+
+    Game game = setup_game();
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -184,6 +192,6 @@ int main(void) {
         EndDrawing();
     }
     CloseWindow();
-    return 0; 
-    
+    return 0;
+
 }
