@@ -103,51 +103,52 @@ void render_snake(Game* game) {
     if (IsKeyDown(KEY_LEFT_SHIFT)) amplitude = 0.4;
     else amplitude = 1.0;
 
+    if (playing) {
 
-    for (int i = 0; i < game->len; ++i) {
-        if (snake[i].x >= SCREEN_WIDTH) snake[i].x -= SCREEN_WIDTH;
-        if (snake[i].x < 0) snake[i].x += SCREEN_WIDTH;
-        if (snake[i].y >= SCREEN_HEIGHT) snake[i].y -= SCREEN_HEIGHT;
-        if (snake[i].y < 0) snake[i].y += SCREEN_HEIGHT;
-    }
-    const bool in_square = snake[0].x % LEN == 0 && snake[0].y % LEN == 0;
-
-    if (in_square) {
-        // Setting direction of current snake to previous snake dir
-        for (int i = game->len - 1; i > 0; --i) {
-            if (!snake[i].moving) snake[i].moving = true;
-
-            snake[i].dir = snake[i - 1].dir;
+        for (int i = 0; i < game->len; ++i) {
+            if (snake[i].x >= SCREEN_WIDTH) snake[i].x -= SCREEN_WIDTH;
+            if (snake[i].x < 0) snake[i].x += SCREEN_WIDTH;
+            if (snake[i].y >= SCREEN_HEIGHT) snake[i].y -= SCREEN_HEIGHT;
+            if (snake[i].y < 0) snake[i].y += SCREEN_HEIGHT;
         }
-        snake[0].dir = next_dir; // Set new direction
-    }
+        const bool in_square = snake[0].x % LEN == 0 && snake[0].y % LEN == 0;
 
-    const Snake* head = &snake[0];
-    // Eating food
-    if (head->x == game->food.x && head->y == game->food.y) {
-        game->is_food_available = false;
-        const Snake new_tail = {
-            .x = snake[game->len - 1].x,
-            .y = snake[game->len - 1].y,
-            .dir = snake[game->len - 1].dir,
-            .moving = false,
-        };
-        snake[game->len++] = new_tail;
-    }
+        if (in_square) {
+            // Setting direction of current snake to previous snake dir
+            for (int i = game->len - 1; i > 0; --i) {
+                if (!snake[i].moving) snake[i].moving = true;
 
-    update_dir(&snake[0].dir, &next_dir);
+                snake[i].dir = snake[i - 1].dir;
+            }
+            snake[0].dir = next_dir; // Set new direction
+        }
 
-    for (int i = 0; i < game->len; ++i) {
-        if (playing && game->snake[i].moving) {
-            if (snake[i].dir == LEFT) game->snake[i].x -= VELOCITY * amplitude;
-            if (snake[i].dir == RIGHT) game->snake[i].x += VELOCITY * amplitude;
-            if (snake[i].dir == UP) game->snake[i].y -= VELOCITY * amplitude;
-            if (snake[i].dir == DOWN) game->snake[i].y += VELOCITY * amplitude;
+        const Snake* head = &snake[0];
+        // Eating food
+        if (head->x == game->food.x && head->y == game->food.y) {
+            game->is_food_available = false;
+            const Snake new_tail = {
+                .x = snake[game->len - 1].x,
+                .y = snake[game->len - 1].y,
+                .dir = snake[game->len - 1].dir,
+                .moving = false,
+            };
+            snake[game->len++] = new_tail;
+        }
+
+        update_dir(&snake[0].dir, &next_dir);
+
+        for (int i = 0; i < game->len; ++i) {
+            if (playing && game->snake[i].moving) {
+                if (snake[i].dir == LEFT) game->snake[i].x -= VELOCITY * amplitude;
+                if (snake[i].dir == RIGHT) game->snake[i].x += VELOCITY * amplitude;
+                if (snake[i].dir == UP) game->snake[i].y -= VELOCITY * amplitude;
+                if (snake[i].dir == DOWN) game->snake[i].y += VELOCITY * amplitude;
+            }
         }
     }
 
     for (int i = 0; i < game->len; i++) {
-        //DrawRectangle(snake[i].x, snake[i].y, LEN, LEN, SNAKE_COLOR);
         DrawCircle(snake[i].x+LEN/2, snake[i].y+LEN/2, LEN/2, SNAKE_COLOR);
     }
 }
