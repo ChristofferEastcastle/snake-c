@@ -30,6 +30,7 @@ typedef struct {
     int x;
     int y;
     enum Dir dir;
+    enum Dir next_dir;
     bool moving;
 } Snake;
 
@@ -97,60 +98,53 @@ IntVector2 get_next_pos(const IntVector2 pos, const enum Dir dir) {
 }
 
 void render_snake(Game* game) {
-    static enum Dir dir = RIGHT;
+    Snake *snake = game->snake;
+
     static enum Dir next_dir = RIGHT;
-    static enum Dir last_dir = RIGHT;
-    static IntVector2 last_dir_pos = {0, 0};
 
     for (int i = 0; i < game->len; ++i) {
-        if (game->snake[i].x >= SCREEN_WIDTH) game->snake[i].x -= SCREEN_WIDTH;
-        if (game->snake[i].x < 0) game->snake[i].x += SCREEN_WIDTH;
-        if (game->snake[i].y >= SCREEN_HEIGHT) game->snake[i].y -= SCREEN_HEIGHT;
-        if (game->snake[i].y < 0) game->snake[i].y += SCREEN_HEIGHT;
-        const bool in_square = game->snake[i].x % LEN == 0 && (int) game->snake[i].y % LEN == 0;
+        if (snake[i].x >= SCREEN_WIDTH) snake[i].x -= SCREEN_WIDTH;
+        if (snake[i].x < 0) snake[i].x += SCREEN_WIDTH;
+        if (snake[i].y >= SCREEN_HEIGHT) snake[i].y -= SCREEN_HEIGHT;
+        if (snake[i].y < 0) snake[i].y += SCREEN_HEIGHT;
+    }
+    const bool in_square = snake[0].x % LEN == 0 && snake[0].y % LEN == 0;
 
-        if (in_square) {
-            last_dir = dir; // Save current direction as last direction
-            dir = next_dir; // Set new direction
+    if (in_square) {
+        // Setting direction of current snake to previous snake dir
+        for (int i = game->len - 1; i > 0; --i) {
+            if (!snake[i].moving) snake[i].moving = true;
+
+            snake[i].dir = snake[i - 1].dir;
         }
-
-        /*
-        for (int i = 0; i < game->len; i++) {
-           // printf("x: %d y: %d\n", next_pos.x / SCREEN_WIDTH, next_pos.y / SCREEN_HEIGHT);
-           game->tail[i].moving = true;
-           const bool tail_in_square = game->tail[i].x % LEN == 0 && game->tail[i].y % LEN == 0;
-            if (tail_in_square && game->tail[i].x == next_pos.x && game->tail[i].y == next_pos.y) {
-                if (i == 0) {
-                    game->tail[i].dir = last_dir;
-                }
-                else {
-                    game->tail[i].dir = game->tail[i - 1].dir;
-                }
-            }
-       }
-       */
-    }  
-    // When in square, render the tail 
-
-    
-    // Eating food
-    if (game->snake[0].x == game->food.x && game->snake[0].y == game->food.y) {
-        game->is_food_available = false;
+        snake[0].dir = next_dir; // Set new direction
     }
 
-    update_dir(&dir, &next_dir);
+    const Snake* head = &snake[0];
+    // Eating food
+    if (head->x == game->food.x && head->y == game->food.y) {
+        game->is_food_available = false;
+        const Snake new_tail = {
+            .x = snake[game->len - 1].x,
+            .y = snake[game->len - 1].y,
+            .dir = snake[game->len - 1].dir,
+            .moving = false,
+        };
+        snake[game->len++] = new_tail;
+    }
 
-    // We only want to update the direction if the snake is in a square, and we are in playing state
-    if (playing) {
-        if (dir == LEFT) game->snake[0].x -= VELOCITY;
-        if (dir == RIGHT) game->snake[0].x += VELOCITY;
-        if (dir == UP) game->snake[0].y -= VELOCITY;
-        if (dir == DOWN) game->snake[0].y += VELOCITY;
-
+    update_dir(&snake[0].dir, &next_dir);
+    for (int i = 0; i < game->len; ++i) {
+        if (playing && game->snake[i].moving) {
+            if (snake[i].dir == LEFT) game->snake[i].x -= VELOCITY;
+            if (snake[i].dir == RIGHT) game->snake[i].x += VELOCITY;
+            if (snake[i].dir == UP) game->snake[i].y -= VELOCITY;
+            if (snake[i].dir == DOWN) game->snake[i].y += VELOCITY;
+        }
     }
 
     for (int i = 0; i < game->len; i++) {
-        DrawRectangle(game->snake[i].x, game->snake[i].y, LEN, LEN, SNAKE_COLOR);
+        DrawRectangle(snake[i].x, snake[i].y, LEN, LEN, SNAKE_COLOR);
     }
 }
 
@@ -160,7 +154,15 @@ int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
 
     Game game = {
-        .snake = {0, 0},
+        .snake = {
+            {
+                .x = 0,
+                .y = 0,
+                .dir = RIGHT,
+                RIGHT,
+                .moving = true,
+            },
+        },
         .len = 1,
         .food = get_rand_x(), get_rand_y(),
         .is_food_available = false,
